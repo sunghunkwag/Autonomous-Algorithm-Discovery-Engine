@@ -10,11 +10,7 @@ without external task specification.
 
 ## Main Engine
 
-**[OMEGA_FORGE_V13_STAGED_EVOLVED.py](OMEGA_FORGE_V13_STAGED_EVOLVED.py)** — Strict Structural Evolution Engine (Current SOTA).
-
-- **Strict Validation**: Enforces Loops, Recursion, and SCCs. Rejects linear cheats.
-- **High Efficiency**: 104 Verified Innovations in 85 Generations.
-- **Autonomous Gating**: Separates 'Worker' (generator) and 'Judge' (strict validator).
+**[OMEGA_FORGE_V13_STAGED_EVOLVED.py](OMEGA_FORGE_V13_STAGED_EVOLVED.py)** 
 
 ```bash
 # Run validation (evidence collection)
