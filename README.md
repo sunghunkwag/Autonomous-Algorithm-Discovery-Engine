@@ -1,4 +1,4 @@
-# OMEGA-FORGE
+# Autonomous-Algorithm-Discovery-Engine
 
 Experimental framework for autonomous goal generation in program synthesis.
 
