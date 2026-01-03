@@ -2,6 +2,14 @@
 
 Experimental framework for taskless, open-ended algorithm discovery via autonomous goal generation in program synthesis.
 
+
+#  Motivation 
+
+Most program synthesis and algorithm discovery systems assume human-defined tasks or rewards.
+This project explores whether a minimal evolutionary system can autonomously generate its own goals and curricula,
+without external task specification.
+
+
 ## Main Engine
 
 **[OMEGA_FORGE_V11.py](OMEGA_FORGE_V11.py)** — Autonomous goal discovery engine.
