@@ -1,6 +1,6 @@
 # Autonomous-Algorithm-Discovery-Engine
 
-Experimental framework for autonomous goal generation in program synthesis.
+Experimental framework for taskless, open-ended algorithm discovery via autonomous goal generation in program synthesis.
 
 ## Main Engine
 
