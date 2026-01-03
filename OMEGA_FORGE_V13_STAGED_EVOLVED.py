@@ -410,6 +410,49 @@ def rand_inst() -> Instruction:
     return Instruction(op, random.randint(-8, 31), random.randint(0, 7), random.randint(0, 7))
 
 # ==============================================================================
+# 5.5) Task-Aware Fitness Benchmark
+# ==============================================================================
+
+class TaskBenchmark:
+    """Evaluates genomes against practical computational tasks."""
+    
+    TASKS = [
+        # (name, inputs, expected_output_location, expected_value)
+        ("SUM_SIMPLE", [1.0, 2.0, 3.0, 4.0, 5.0], "reg0", 15.0),
+        ("SUM_SMALL", [2.0, 3.0, 5.0], "reg0", 10.0),
+        ("MAX_FIND", [3.0, 7.0, 2.0, 9.0, 1.0], "reg0", 9.0),
+        ("COUNT", [1.0, 1.0, 1.0, 1.0], "reg0", 4.0),
+        ("DOUBLE_FIRST", [5.0, 0.0, 0.0, 0.0], "mem0", 10.0),
+    ]
+    
+    @staticmethod
+    def evaluate(genome: "ProgramGenome", vm: "VirtualMachine") -> float:
+        """Returns task score 0.0-1.0 based on practical task performance."""
+        passed = 0
+        total = len(TaskBenchmark.TASKS)
+        
+        for name, inputs, out_loc, expected in TaskBenchmark.TASKS:
+            try:
+                st = vm.execute(genome, inputs)
+                if out_loc == "reg0":
+                    result = st.regs[0]
+                elif out_loc == "mem0":
+                    result = st.memory.get(0, 0.0)
+                else:
+                    result = 0.0
+                
+                # Check if result matches expected (with tolerance)
+                if abs(result - expected) < 0.01:
+                    passed += 1
+                # Partial credit for being close
+                elif abs(result - expected) < expected * 0.1:
+                    passed += 0.5
+            except:
+                pass
+        
+        return passed / total
+
+# ==============================================================================
 # 6) Detector + evidence writer
 # ==============================================================================
 
@@ -755,10 +798,18 @@ class OmegaForgeV13:
             cfg2 = ControlFlowGraph.from_trace(st2.trace, len(g.instructions))
             cov = st2.coverage(len(g.instructions))
             scc_n = len(cfg2.sccs())
-            # Potential score: coverage + (loops/branches/calls) + SCC bonus; penalize errors / dirty halts
-            score = cov + 0.02 * min(st2.loops_count, 50) + 0.01 * min(st2.conditional_branches, 50) + 0.03 * min(st2.max_call_depth, 10) + 0.08 * min(scc_n, 6)
+            
+            # STRUCTURAL score (original): coverage + loops/branches/calls + SCC
+            struct_score = cov + 0.02 * min(st2.loops_count, 50) + 0.01 * min(st2.conditional_branches, 50) + 0.03 * min(st2.max_call_depth, 10) + 0.08 * min(scc_n, 6)
             if st2.error or (not st2.halted_cleanly):
-                score -= 0.5
+                struct_score -= 0.5
+            
+            # TASK-AWARE score (NEW): practical problem-solving ability
+            task_score = TaskBenchmark.evaluate(g, self.vm)
+            
+            # Combined score: 50% structure + 50% task performance
+            score = 0.5 * struct_score + 0.5 * task_score * 2.0  # task_score scaled to ~1.0 max
+            
             g.last_score = float(score)
             g.last_cfg_hash = cfg2.canonical_hash()
 
