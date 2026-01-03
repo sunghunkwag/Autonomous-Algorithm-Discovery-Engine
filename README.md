@@ -21,6 +21,10 @@ without external task specification.
 python OMEGA_FORGE_V13_STAGED_EVOLVED.py evidence_run --target 100
 ```
 
+## Status
+
+⚠️ **Research stage** — Does not yet discover practical algorithms. Intended for experimental analysis of structural evolution.
+
 ## Archive
 
 Older versions (`V11`, `V12`, `V13` variants) and execution logs are preserved in `/archive`.
