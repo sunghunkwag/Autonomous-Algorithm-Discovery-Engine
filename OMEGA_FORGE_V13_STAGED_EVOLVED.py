@@ -417,28 +417,28 @@ def rand_inst() -> Instruction:
 class DetectorParams:
     # Target: 0.5–5% successes. Use a curriculum so the search has a gradient early,
     # then harden constraints to avoid "linear cheats".
-    K_initial: int = 5               # strict CFG edit distance (post-warmup)
-    L_initial: int = 8               # strict active subseq length (post-warmup)
+    K_initial: int = 6               # strict CFG edit distance (post-warmup)
+    L_initial: int = 10              # strict active subseq length (post-warmup)
     C_coverage: float = 0.55         # min coverage (post-warmup)
     f_rarity: float = 0.001          # rarity threshold (post-warmup)
     N_repro: int = 4                 # reproducibility trials
 
     require_both: bool = True        # strict mode requires CFG + subseq
-    min_loops: int = 1               # reject linear expansions
-    min_scc: int = 1                 # require SCC presence (loop-like structure)
+    min_loops: int = 2               # STRICT: Require at least 2 loops (Multi-Stage)
+    min_scc: int = 2                 # STRICT: Require at least 2 SCCs (Complex Topology)
 
     allow_cfg_variants: int = 2      # reproducibility CFG variants
     max_cov_span: float = 0.30       # reproducibility coverage stability
     max_loop_span: int = 5           # reproducibility loop stability
 
     # Warmup curriculum (first warmup_gens generations)
-    warmup_gens: int = 300
-    warmup_K: int = 2
-    warmup_L: int = 6
-    warmup_cov: float = 0.40
-    warmup_require_both: bool = False
-    warmup_min_loops: int = 0
-    warmup_min_scc: int = 0
+    warmup_gens: int = 100
+    warmup_K: int = 3
+    warmup_L: int = 8
+    warmup_cov: float = 0.45
+    warmup_require_both: bool = True # Strict warmup
+    warmup_min_loops: int = 1        # Ban linear code even in warmup
+    warmup_min_scc: int = 1          # Ban acyclic graphs even in warmup
 
 class StrictStructuralDetector:
     def __init__(self, params: Optional[DetectorParams] = None) -> None:
