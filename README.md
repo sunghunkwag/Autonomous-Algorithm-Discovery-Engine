@@ -1,32 +1,29 @@
 # Autonomous Algorithm Discovery Engine
 
-A sophisticated Evolutionary Algorithm (EA) engine designed to autonomously discover and synthesize algorithms for fundamental computational tasks (SUM, MAX, DOUBLE).
+> [!IMPORTANT]
+> **Experimental Research Project**
+> This repository contains code for research into evolutionary computing and program synthesis. It is a Proof of Concept (PoC) and is not intended for production usage. The algorithms discovered here are for educational and analytical purposes.
 
-## Key Features
+This project implements a **Two-Stage Evolutionary Algorithm** that synthesizes simple programs (in a custom assembly language) to solve computational tasks without human intervention.
 
-*   **Two-Stage Evolution**: 
-    *   **Stage 1**: Structural discovery using Control Flow Graph (CFG) analysis to find loops and branching patterns.
-    *   **Stage 2**: Task-specific optimization with curriculum learning and bias feedback.
-*   **Virtual Machine (VM)**: A custom-built register-based VM with 8 registers and 64-slot memory.
-*   **Meta-Learning Feedback**: Stage 2 results generate opcode biases that improved Stage 1's search efficiency (Self-Guided).
-*   **Strict Verification**: 
-    *   **Anti-Cheat**: Filters out linear code ("fake passes") by enforcing loop structures (SCCs).
-    *   **Determinism**: Ensures rigorous reproducibility of discovered algorithms.
+## Technical Components
 
-## Repository Structure
+1.  **Custom Virtual Machine (VM)**: A register-based VM (8 registers, 64-slot memory) that executes the evolved code.
+2.  **Two-Stage Evolution**:
+    *   **Stage 1 (Structure)**: Evolves code structures using Control Flow Graph (CFG) analysis to find loops and branching, maximizing structural diversity.
+    *   **Stage 2 (Task)**: Optimizes the Stage 1 candidates to solve specific tasks (SUM, MAX, DOUBLE).
+3.  **Strict Verification**: Evolved programs must pass a "Strict Structural Detector" that rejects linear code and requires valid control flow (SCCs) to be considered a solution.
+4.  **Meta-Feedback**: The system uses a feedback loop where successful instruction patterns from Stage 2 bias the random generation in Stage 1.
 
-*   `omega_forge_two_stage_feedback.py`: **Main Engine.** The latest version featuring the full Two-Stage pipeline, Feedback Loop, and Curriculum Learning.
-*   `archive/`: Contains previous iterations and legacy versions (e.g., `OMEGA_FORGE_V13_STAGED_EVOLVED.py`).
+## Code Structure
 
-## Quick Start
+*   `omega_forge_two_stage_feedback.py`: The main Python script containing the engine logic, VM, and evolutionary pipeline.
+*   `archive/`: Contains legacy versions and experimental logs.
 
-Run the full discovery pipeline:
+## Usage
+
+To run the discovery process:
 
 ```bash
 python omega_forge_two_stage_feedback.py full
 ```
-
-This will:
-1. Run **Stage 1** to collect structural candidates.
-2. Run **Stage 2** to evolve them against SUM/MAX/DOUBLE tasks.
-3. Save the discovered algorithms and feedback data.
