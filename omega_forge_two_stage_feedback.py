@@ -1282,36 +1282,16 @@ class TaskBenchmarkV4:
         results["SUM"] = all_pass
         
         # MAX
-        all_pass = True
+        max_scores = []
         for inputs, expected in TaskBenchmarkV4.MAX_CASES:
-            try:
-                st = vm.execute(genome, inputs)
-                if st.error or not st.halted_cleanly:
-                    all_pass = False
-                    break
-                if abs(st.regs[0] - expected) > 0.01:
-                    all_pass = False
-                    break
-            except:
-                all_pass = False
-                break
-        results["MAX"] = all_pass
+            max_scores.append(TaskBenchmarkV4._case_score(genome, vm, inputs, expected, "reg0"))
+        results["MAX"] = (sum(max_scores) / len(max_scores) if max_scores else 0.0) >= 0.2
         
         # DOUBLE
-        all_pass = True
+        dbl_scores = []
         for inputs, expected in TaskBenchmarkV4.DOUBLE_CASES:
-            try:
-                st = vm.execute(genome, inputs)
-                if st.error or not st.halted_cleanly:
-                    all_pass = False
-                    break
-                if abs(st.memory.get(0, 0.0) - expected) > 0.01:
-                    all_pass = False
-                    break
-            except:
-                all_pass = False
-                break
-        results["DOUBLE"] = all_pass
+            dbl_scores.append(TaskBenchmarkV4._case_score(genome, vm, inputs, expected, "mem0"))
+        results["DOUBLE"] = (sum(dbl_scores) / len(dbl_scores) if dbl_scores else 0.0) >= 0.2
         
         return results
     
@@ -1461,18 +1441,41 @@ class Stage2Engine:
         
     def load_population(self, sample_size: int = 50):
         sorted_cands = sorted(
-            self.candidates, 
-            key=lambda x: x.get("task_scores", {}).get("SUM", 0), 
-            reverse=True
+            self.candidates,
+            key=lambda x: x.get("task_scores", {}).get("SUM", 0),
+            reverse=True,
         )
-        
-        self.population = []
-        for i, c in enumerate(sorted_cands[:sample_size]):
+        sorted_max = sorted(
+            self.candidates,
+            key=lambda x: x.get("task_scores", {}).get("MAX", 0),
+            reverse=True,
+        )
+        sorted_dbl = sorted(
+            self.candidates,
+            key=lambda x: x.get("task_scores", {}).get("DOUBLE", 0),
+            reverse=True,
+        )
+
+        seed_genomes: List[ProgramGenome] = []
+        for i, c in enumerate(sorted_cands[: max(1, sample_size - 10)]):
             insts = [Instruction(op, a, b, c_) for op, a, b, c_ in c["code"]]
-            g = ProgramGenome(gid=f"s2_init_{i}", instructions=insts, generation=0)
-            self.population.append(g)
-        
-        print(f"[Stage 2] Loaded {len(self.population)} genomes (sorted by SUM potential)")
+            seed_genomes.append(ProgramGenome(gid=f"s2_init_sum_{i}", instructions=insts, generation=0))
+
+        for i, c in enumerate(sorted_max[:5]):
+            insts = [Instruction(op, a, b, c_) for op, a, b, c_ in c["code"]]
+            seed_genomes.append(ProgramGenome(gid=f"s2_init_max_{i}", instructions=insts, generation=0))
+
+        for i, c in enumerate(sorted_dbl[:5]):
+            insts = [Instruction(op, a, b, c_) for op, a, b, c_ in c["code"]]
+            seed_genomes.append(ProgramGenome(gid=f"s2_init_dbl_{i}", instructions=insts, generation=0))
+
+        seed_genomes.append(ProgramGenome(gid="s2_init_macro_max", instructions=TaskMacroLibrary.max_skeleton(), generation=0))
+        seed_genomes.append(ProgramGenome(gid="s2_init_macro_double", instructions=TaskMacroLibrary.double_skeleton(), generation=0))
+        seed_genomes.append(ProgramGenome(gid="s2_init_macro_double_2", instructions=TaskMacroLibrary.double_skeleton(), generation=0))
+
+        self.population = seed_genomes[:sample_size]
+
+        print(f"[Stage 2] Loaded {len(self.population)} genomes (SUM/MAX/DOUBLE-seeded)")
     
     def mutate(self, parent: ProgramGenome) -> ProgramGenome:
         child = parent.clone()
@@ -1481,7 +1484,15 @@ class Stage2Engine:
         child.gid = f"s2_g{self.generation}_{global_random.randint(0, 999999)}"
         
         roll = global_random.random()
-        if roll < 0.4 and child.instructions:
+        if roll < 0.3 and len(child.instructions) + 10 < 60:
+            skeleton = global_random.choices(
+                [TaskMacroLibrary.max_skeleton, TaskMacroLibrary.double_skeleton],
+                weights=[1.0, 2.0],
+                k=1,
+            )[0]()
+            pos = global_random.randint(0, len(child.instructions))
+            child.instructions[pos:pos] = [Instruction(i.op, i.a, i.b, i.c) for i in skeleton]
+        elif roll < 0.5 and child.instructions:
             pos = global_random.randint(0, len(child.instructions) - 1)
             inst = child.instructions[pos]
             field = global_random.choice(["a", "b", "c"])
@@ -1492,7 +1503,7 @@ class Stage2Engine:
                 inst.b = max(0, min(7, inst.b + delta))
             else:
                 inst.c = max(0, min(7, inst.c + delta))
-        elif roll < 0.6 and child.instructions:
+        elif roll < 0.7 and child.instructions:
             pos = global_random.randint(0, len(child.instructions) - 1)
             useful_ops = ["LOAD", "ADD", "STORE", "JGT", "JLT", "MOV", "INC"]
             child.instructions[pos] = Instruction(
@@ -1501,7 +1512,7 @@ class Stage2Engine:
                 global_random.randint(0, 7),
                 global_random.randint(0, 7)
             )
-        elif roll < 0.8 and len(child.instructions) >= 2:
+        elif roll < 0.9 and len(child.instructions) >= 2:
             i, j = global_random.sample(range(len(child.instructions)), 2)
             child.instructions[i], child.instructions[j] = child.instructions[j], child.instructions[i]
         else:
@@ -1537,11 +1548,23 @@ class Stage2Engine:
             fitness = min(sum_s, max_s, dbl_s)
         else:
             fitness = (sum_s + max_s + dbl_s) / 3.0
+        weighted = 0.6 * sum_s + 0.2 * max_s + 0.2 * dbl_s
+        fitness = 0.5 * fitness + 0.5 * weighted
         
         # PATCH 3: SUM gate multiplier
         if not strict_pass.get("SUM", False):
-            fitness *= SUM_GATE_AFTER_SWITCH
-        
+            fitness *= min(SUM_GATE_AFTER_SWITCH, 0.05)
+        else:
+            fitness += 0.5
+
+        # Boost strict-pass for MAX/DOUBLE to encourage multi-task solutions
+        if strict_pass.get("MAX", False):
+            fitness += 0.5
+        if strict_pass.get("DOUBLE", False):
+            fitness += 1.0
+        if strict_pass.get("MAX", False) and strict_pass.get("DOUBLE", False):
+            fitness += 0.5
+
         return fitness
     
     def step(self) -> Dict[str, Any]:
@@ -1640,7 +1663,7 @@ def extract_stage2_feedback(population: List[ProgramGenome],
     scored: List[Tuple[float, ProgramGenome, Dict[str, bool]]] = []
     for g in population:
         scores = TaskBenchmarkV4.evaluate(g, vm)
-        strict_pass = TaskBenchmarkV4.evaluate_per_genome_pass(g, vm)
+        strict_pass = TaskBenchmarkV4.evaluate_strict_pass(g, vm)
         if require_sum_pass and not strict_pass.get("SUM", False):
             continue
         s = float(scores.get("SUM", 0.0))
