@@ -1,31 +1,32 @@
-# Autonomous-Algorithm-Discovery-Engine
+# Autonomous Algorithm Discovery Engine
 
-Experimental framework for taskless, open-ended algorithm discovery via autonomous goal generation in program synthesis.
+A sophisticated Evolutionary Algorithm (EA) engine designed to autonomously discover and synthesize algorithms for fundamental computational tasks (SUM, MAX, DOUBLE).
 
-## Motivation 
+## Key Features
 
-Most program synthesis and algorithm discovery systems assume human-defined tasks or rewards.
-This project explores whether a minimal evolutionary system can autonomously generate its own goals and curricula,
-without external task specification.
+*   **Two-Stage Evolution**: 
+    *   **Stage 1**: Structural discovery using Control Flow Graph (CFG) analysis to find loops and branching patterns.
+    *   **Stage 2**: Task-specific optimization with curriculum learning and bias feedback.
+*   **Virtual Machine (VM)**: A custom-built register-based VM with 8 registers and 64-slot memory.
+*   **Meta-Learning Feedback**: Stage 2 results generate opcode biases that improved Stage 1's search efficiency (Self-Guided).
+*   **Strict Verification**: 
+    *   **Anti-Cheat**: Filters out linear code ("fake passes") by enforcing loop structures (SCCs).
+    *   **Determinism**: Ensures rigorous reproducibility of discovered algorithms.
 
-## Main Engine
+## Repository Structure
 
-**[OMEGA_FORGE_V13_STAGED_EVOLVED.py](OMEGA_FORGE_V13_STAGED_EVOLVED.py)** 
+*   `omega_forge_two_stage_feedback.py`: **Main Engine.** The latest version featuring the full Two-Stage pipeline, Feedback Loop, and Curriculum Learning.
+*   `archive/`: Contains previous iterations and legacy versions (e.g., `OMEGA_FORGE_V13_STAGED_EVOLVED.py`).
+
+## Quick Start
+
+Run the full discovery pipeline:
 
 ```bash
-# Run validation (evidence collection)
-python OMEGA_FORGE_V13_STAGED_EVOLVED.py evidence_run --target 100
+python omega_forge_two_stage_feedback.py full
 ```
 
-## Status
-
-⚠️ **Research stage** — Does not yet discover practical algorithms. Intended for experimental analysis of structural evolution.
-
-## Archive
-
-Older versions (`V11`, `V12`, `V13` variants) and execution logs are preserved in `/archive`.
-`V13_STAGED_EVOLVED` supersedes all previous versions.
-
-## License
-
-MIT
+This will:
+1. Run **Stage 1** to collect structural candidates.
+2. Run **Stage 2** to evolve them against SUM/MAX/DOUBLE tasks.
+3. Save the discovered algorithms and feedback data.
